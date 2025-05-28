@@ -58,7 +58,7 @@ namespace Mongo.Web.Controllers
 
 
             }
-            return View();
+            return RedirectToAction("CartIndex");
         }
         public async Task<IActionResult> Confirmation(int orderId)
         {
