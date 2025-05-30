@@ -1,25 +1,20 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using Mango.Web.Utility;
 
-namespace Mango.Web.Models
-
+namespace Mango.Services.ShoppingCardAPI.Models
 {
-    public class ProductDto
+    public class Product
     {
+        [Key]
         public int id { get; set; }
+        public string UserId { get; set; } = string.Empty; // Assuming UserId is a string, adjust as necessary
         public int ProductId { get; set; }
-        public string? UserId { get; set; }
-        [Required(ErrorMessage = "Name is required.")]
+        [Required]
         public string Name { get; set; }
+        [Range(1, 1000)]
         public double Price { get; set; }
         public string Description { get; set; }
         public string CategoryName { get; set; }
         public string? ImageUrl { get; set; }
         public string? ImageLocalPath { get; set; }
-        [MaxFileSize(1)]
-        [AllowedExtensions(new string[] { ".jpg", ".png" })]
-        public IFormFile? Image { get; set; }
-        [Range(1,100)]
-        public int Count { get; set; } = 1;
     }
 }

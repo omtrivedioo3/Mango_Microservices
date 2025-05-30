@@ -18,11 +18,49 @@ namespace Mongo.Web.Controllers
             _cartService = cartService;
             _orderService = orderService;
         }
+
+        [Authorize]
+        public async Task<IActionResult> WishListIndex()
+        {
+            var userId = User.Claims.Where(u => u.Type == JwtRegisteredClaimNames.Sub)?.FirstOrDefault()?.Value;
+            ResponseDto? response = await _cartService.GetWIshListByUserIdAsnyc(userId);
+            
+            if (response != null & response.IsSuccess)
+            {
+                IEnumerable<ProductDto> productDto  = JsonConvert.DeserializeObject<IEnumerable<ProductDto>>(Convert.ToString(response.Result));
+                //return productDto;
+            return View(productDto);
+            }
+            else
+            {
+                return RedirectToAction("CartIndex");
+            }
+        }
+        [Authorize]
+        public async Task<IActionResult> RemoveWishList(int ProductId)
+        {
+            var userId = User.Claims.Where(u => u.Type == JwtRegisteredClaimNames.Sub)?.FirstOrDefault()?.Value;
+
+            ResponseDto? response = await _cartService.RemoveWIshListByUserIdAsnyc(ProductId, userId);
+
+            if (response != null & response.IsSuccess)
+            {
+                ProductDto productDto1 = JsonConvert.DeserializeObject<ProductDto>(Convert.ToString(response.Result));
+                //return productDto;
+                return RedirectToAction("WishListIndex");
+            }
+            else
+            {
+                return RedirectToAction("CartIndex");
+            }
+        }
         [Authorize]
         public async Task<IActionResult> CartIndex()
         {
             return View(await LoadCartDtoBasedOnLoggedInUser());
         }
+
+
         [HttpPost]
         [ActionName("Checkout")]
         public async Task<IActionResult> Checkout(CartDto cartDto)
@@ -54,9 +92,6 @@ namespace Mongo.Web.Controllers
                 //                            (Convert.ToString(stripeResponse.Result));
                 //Response.Headers.Add("Location", stripeResponseResult.StripeSessionUrl);
                 //return new StatusCodeResult(303);
-
-
-
             }
             return RedirectToAction("CartIndex");
         }

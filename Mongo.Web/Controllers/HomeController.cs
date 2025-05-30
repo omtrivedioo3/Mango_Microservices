@@ -4,9 +4,7 @@ using Mango.Web.Service.IService;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Mongo.Web.Models;
-using Mongo.Web.Service.IService;
 using Newtonsoft.Json;
-using System.Security.Claims;
 
 namespace Mongo.Web.Controllers
 {
@@ -60,38 +58,46 @@ namespace Mongo.Web.Controllers
         [Authorize]
         [HttpPost]
         [ActionName("ProductDetails")]
-        public async Task<IActionResult> ProductDetails(ProductDto productDto)
+        public async Task<IActionResult> ProductDetails(ProductDto productDto, string submitAction)
         {
-            CartDto cartDto = new CartDto()
+            var userId = User.Claims.FirstOrDefault(u => u.Type == "sub")?.Value;
+
+            if (submitAction == "cart")
             {
-                CartHeader = new CartHeaderDto
+                CartDto cartDto = new CartDto
                 {
-                    //UserId = User.Claims.Where(u => u.Type == JwtClaimTypes.Subject)?.FirstOrDefault()?.Value
-                      UserId = User.Claims.FirstOrDefault(u => u.Type == "sub")?.Value
+                    CartHeader = new CartHeaderDto { UserId = userId },
+                    CartDetails = new List<CartDetailsDto>
+            {
+                new CartDetailsDto
+                {
+                    ProductId = productDto.ProductId,
+                    Count = productDto.Count
                 }
-            };
+            }
+                };
 
-            CartDetailsDto cartDetails = new CartDetailsDto()
+                var response = await _cartService.UpsertCartAsync(cartDto);
+
+                if (response?.IsSuccess == true)
+                {
+                    TempData["success"] = "Item has been added to the Shopping Cart";
+                    return RedirectToAction(nameof(Index));
+                }
+                else
+                {
+                    TempData["error"] = response?.Messages;
+                    return View(productDto);
+                }
+            }
+            else if (submitAction == "wishlist")
             {
-                Count = productDto.Count,
-                ProductId = productDto.ProductId,
-            };
-
-            List<CartDetailsDto> cartDetailsDtos = new() { cartDetails };
-            cartDto.CartDetails = cartDetailsDtos;
-
-            ResponseDto? response = await _cartService.UpsertCartAsync(cartDto);
-
-            if (response != null && response.IsSuccess)
-            {
-                TempData["success"] = "Item has been added to the Shopping Cart";
+                ResponseDto? response = await _cartService.AddWIshListByUserIdAsnyc(productDto.ProductId, userId);
+                TempData["success"] = "Item added to Wishlist (coming soon)";
                 return RedirectToAction(nameof(Index));
             }
-            else
-            {
-                TempData["error"] = response?.Messages;
-            }
 
+            TempData["error"] = "Unknown action.";
             return View(productDto);
         }
 

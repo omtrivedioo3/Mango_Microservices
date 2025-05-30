@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+﻿using System.IdentityModel.Tokens.Jwt;
+using AutoMapper;
 using Azure;
 using Mango.Services.ShoppingCardAPI.Data;
 using Mango.Services.ShoppingCardAPI.Models;
@@ -7,6 +8,8 @@ using Mango.Services.ShoppingCartAPI.Service.IService;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Mango.Services.ShoppingCardAPI.Controllers
 {
@@ -20,6 +23,9 @@ namespace Mango.Services.ShoppingCardAPI.Controllers
         private IConfiguration _configuration;
         private ICouponService _couponService;
         public IProductService _productService;
+        private string url = "https://localhost:7000/api/product/";
+        private readonly HttpClient client = new HttpClient();
+
 
         public CartAPIController(AppDbContext db, IProductService productService, ICouponService couponService,
             IMapper mapper, IConfiguration configuration)
@@ -30,6 +36,93 @@ namespace Mango.Services.ShoppingCardAPI.Controllers
             _mapper = mapper;
             _configuration = configuration; 
             _couponService = couponService;
+        }
+
+        [HttpGet("GetWishList/{userId}")]
+        public async Task<object> GetWishList(string userId)
+        {
+            try
+            {
+                IEnumerable<Product> productList = await _db.ProductDetails
+           .Where(u => u.UserId == userId)
+           .ToListAsync();
+                //Product productList = await _db.ProductDetails.FirstOrDefaultAsync(u => u.UserId == userId);
+                //IEnumerable<Product> productList = new() { 
+                //    productList}
+                _response.Result = _mapper.Map<IEnumerable<ProductDto>>(productList);
+                //_response.Result = true;
+            }
+            catch (Exception ex)
+            {
+                _response.IsSuccess = false;
+                _response.Message = ex.ToString();
+            }
+            return _response;
+        }
+
+        [HttpPost("InsertWishList/{ProductId}/{userId}")]
+        public async Task<object> InsertWishList(int ProductId, string userId)
+        {
+            try
+            {
+                using var httpClient = new HttpClient();
+                //var response = await httpClient.GetAsync($"https://localhost:7777/api/product/{ProductId}");
+                HttpResponseMessage response = client.GetAsync(url+ ProductId).Result;
+                if (!response.IsSuccessStatusCode)
+                {
+                    _response.IsSuccess = false;
+                    _response.Message = $"Product not found: {ProductId}";
+                    return _response;
+                }
+
+                var apiResponse = await response.Content.ReadAsStringAsync();
+                var fullJson = JObject.Parse(apiResponse);
+
+                // Step 2: Extract the "result" property
+                var resultJson = fullJson["result"]?.ToString();
+                var productDto = JsonConvert.DeserializeObject<ProductDto>(resultJson ?? "");
+
+                if (productDto == null)
+                {
+                    _response.IsSuccess = false;
+                    _response.Message = "Product could not be deserialized.";
+                    return _response;
+                }
+
+                Product product = _mapper.Map<Product>(productDto);
+                product.UserId = userId;
+                _db.ProductDetails.Add(product);
+                _db.SaveChanges();
+
+                _response.Result = product;
+            }
+            catch (Exception ex)
+            {
+                _response.IsSuccess = false;
+                _response.Message = ex.ToString();
+            }
+
+            return _response;
+        }
+
+
+        [HttpDelete("RemoveWishList/{ProductId}/{userId}")]
+        public async Task<object> RemoveWishList(int ProductId,string userId)
+        {
+            try
+            {
+
+                Product obj = _db.ProductDetails.First(u => u.ProductId == ProductId & u.UserId == userId);
+                _db.ProductDetails.Remove(obj);
+                _db.SaveChanges();
+                _response.Result = obj;
+            }
+            catch (Exception ex)
+            {
+                _response.IsSuccess = false;
+                _response.Message = ex.ToString();
+            }
+            return _response;
         }
 
         [HttpGet("GetCart/{userId}")]

@@ -10,6 +10,8 @@ namespace Mango.Services.ShoppingCardAPI.Data
         }
         public DbSet<CartHeader> CartHeaders { get; set; }
         public DbSet<CartDetails> CartDetails { get; set; }
+        public DbSet<Product> ProductDetails { get; set; }
+
         
     }
    
