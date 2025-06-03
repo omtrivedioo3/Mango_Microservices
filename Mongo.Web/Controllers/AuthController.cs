@@ -60,6 +60,25 @@ namespace Mongo.Web.Controllers
             ViewBag.RoleList = roleList;
             return View();
         }
+
+        [HttpGet]
+        public IActionResult Description()
+        {
+
+            var identity = (ClaimsIdentity)User.Identity;
+            var claims = identity.Claims;
+
+            var userDto = new UserDto
+            {
+                ID = claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value,
+                Name = claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value,
+                Email = claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value,
+                PhoneNumber = claims.FirstOrDefault(c => c.Type == ClaimTypes.MobilePhone)?.Value
+            };
+
+            return View(userDto);
+        }
+
         [HttpPost]
         public async Task<IActionResult> Register(RegistrationRequestDto obj)
         {

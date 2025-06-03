@@ -19,7 +19,7 @@ namespace Mongo.Web.Controllers
             _orderService = orderService;
         }
 
-        [Authorize]
+        [Authorize] 
         public async Task<IActionResult> WishListIndex()
         {
             var userId = User.Claims.Where(u => u.Type == JwtRegisteredClaimNames.Sub)?.FirstOrDefault()?.Value;
@@ -36,6 +36,7 @@ namespace Mongo.Web.Controllers
                 return RedirectToAction("CartIndex");
             }
         }
+
         [Authorize]
         public async Task<IActionResult> RemoveWishList(int ProductId)
         {
@@ -54,6 +55,7 @@ namespace Mongo.Web.Controllers
                 return RedirectToAction("CartIndex");
             }
         }
+
         [Authorize]
         public async Task<IActionResult> CartIndex()
         {
